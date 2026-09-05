@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+backend/kisanprofit.db
+backend/.env
+
+# Node
+node_modules/
+frontend/dist/
+frontend/.env.local
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+/tmp/
