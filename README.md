@@ -1,4 +1,8 @@
 <div align="center">
+<img src="docs/social-preview.png" alt="KisanProfit — farmer expense and profit tracker" width="100%">
+</div>
+
+<div align="center">
 
 # 🌾 KisanProfit — Farmer Expense & Profit Tracker
 
