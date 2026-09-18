@@ -1,4 +1,7 @@
-const BASE = '/api'
+// API base: '/api' for same-origin deploys (Docker/nginx), or the full public
+// URL via VITE_API_BASE_URL when the frontend is hosted separately (Render
+// static site + web service). Vite bakes this in at build time.
+const BASE = import.meta.env.VITE_API_BASE_URL || '/api'
 
 export class ApiError extends Error {
   status: number
