@@ -1,0 +1,1 @@
+"""KisanProfit backend application package."""

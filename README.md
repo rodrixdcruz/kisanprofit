@@ -4,7 +4,7 @@
 
 **Know Your Cost. Track Your Crop. Grow Your Profit.**
 
-[![tests](https://img.shields.io/badge/tests-34%20passing-brightgreen)](#quick-start) [![i18n](https://img.shields.io/badge/i18n-EN%20%2F%20%E0%A4%B9%E0%A4%BF%E0%A4%A8%E0%A5%8D%E0%A4%A6%E0%A5%80%20%2F%20%E0%A4%AE%E0%A4%B0%E0%A4%BE%E0%A4%A0%E0%A5%80-blue)](#-features) [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](backend/) [![React 18](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white)](frontend/) [![FastAPI](https://img.shields.io/badge/FastAPI-0.110%2B-009688?logo=fastapi&logoColor=white)](backend/) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![tests](https://img.shields.io/badge/tests-53%20passing-brightgreen)](#quick-start) [![i18n](https://img.shields.io/badge/i18n-EN%20%2F%20%E0%A4%B9%E0%A4%BF%E0%A4%A8%E0%A5%8D%E0%A4%A6%E0%A5%80%20%2F%20%E0%A4%AE%E0%A4%B0%E0%A4%BE%E0%A4%A0%E0%A5%80-blue)](#-features) [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](backend/) [![React 18](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white)](frontend/) [![FastAPI](https://img.shields.io/badge/FastAPI-0.110%2B-009688?logo=fastapi&logoColor=white)](backend/) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 </div>
 
@@ -14,7 +14,7 @@ Built for farmers, not bankers: big readable numbers, large touch targets, 10-se
 
 ---
 
-> ⚠️ **Repository status** — This README documents the **complete design** of KisanProfit: the feature set, architecture, and financial engine are fully specified here, and a Docker Compose file is included for the intended backend + frontend + PostgreSQL stack. **The full application source is not published in this repository yet.** If you'd like the source or a walkthrough, open an issue or reach out.
+> ⚠️ **Repository status** — KisanProfit is now a **complete, working application**: FastAPI + SQLAlchemy backend (53 passing tests), React 18 + TypeScript + Tailwind v4 frontend, Docker Compose stack with a pre-seeded demo farm. The README below is the original feature specification the implementation follows — the architecture tree and demo numbers are verified against the running app.
 
 ---
 
@@ -64,7 +64,7 @@ kisanprofit/
 │   │   ├── market/          # live data.gov.in mandi prices; reference fallback
 │   │   ├── reports/         # PDF (fpdf2) + CSV generation
 │   │   └── seed.py          # demo farmer (is_demo=True, separate from real users)
-│   └── tests/               # 34 pytest tests (auth, CRUD, finance math, edge cases, authz, integrations)
+│   └── tests/               # 53 pytest tests (auth, CRUD, finance math, edge cases, authz, integrations)
 └── frontend/                # Vite + React 18 + TypeScript + Tailwind v4
     └── src/
         ├── pages/           # Landing, auth, dashboard, farms, crops, expenses,
@@ -141,18 +141,18 @@ behind a reverse proxy that forwards `/api` (like the bundled nginx setup).
 ### Run tests
 
 ```bash
-cd backend && .venv/bin/python -m pytest tests/ -q      # 34 tests
+cd backend && .venv/bin/python -m pytest tests/ -q      # 53 tests
 cd frontend && npm run build                             # tsc + vite production build
 ```
 
 ## 🎪 Demo (for judges — 60 seconds)
 
 1. Open http://localhost:5173 → **Create Account** or **Explore Demo Farm**
-2. **Dashboard** — AI summary, profit ₹85,400, ROI 103.5%, all charts live
+2. **Dashboard** — AI summary, profit ₹85,400, ROI 106.75%, all charts live
 3. Open **Cotton** crop → full snapshot + lifecycle timeline
 4. **Expenses** → stats + list → **Add Expense** (quick Fertilizer button, ₹2,500)
 5. Totals update instantly (₹82,500 total, avg ₹5,500)
-6. **Profit Simulator** → load Cotton → change price ₹7,000 → ₹7,500 → profit ₹68,000 → ₹76,250
+6. **Profit Simulator** → load Cotton → change price ₹7,000 → ₹7,500 → profit ₹36,400 → ₹51,400
 7. **Kisan AI** → ask *"Where am I spending the most?"* (or in Hindi/Marathi)
 8. **Weather** → live forecast + rain advisories for Akola
 9. **Reports** → download the Cotton PDF report

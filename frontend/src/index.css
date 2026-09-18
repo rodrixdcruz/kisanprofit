@@ -1,0 +1,12 @@
+@import "tailwindcss";
+
+:root {
+  font-family: "Poppins", system-ui, -apple-system, sans-serif;
+}
+
+/* Farmers-first readability: big numbers, generous tap targets */
+html { font-size: 16px; }
+.btn-tap { min-height: 48px; }
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }

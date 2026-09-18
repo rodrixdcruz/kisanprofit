@@ -1,0 +1,7 @@
+# Local-test override: WeatherGPT's stacks own 8000/80/5432 on this machine,
+# so shift kisanprofit's ports. Not committed.
+services:
+  backend:
+    ports: !override ["18000:8000"]
+  frontend:
+    ports: !override ["18080:80"]
