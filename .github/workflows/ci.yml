@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    name: Backend tests (Python 3.10)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10" # matches backend/Dockerfile (python:3.10-slim)
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # Hermetic: external HTTP (Open-Meteo, data.gov.in, Gemini, Nominatim)
+      # is mocked in tests, rate limiting is off (conftest), and the suite
+      # runs against the code-default settings on a throwaway SQLite file.
+      # 83 tests, a few seconds — no service containers needed.
+      - name: Run tests
+        run: python -m pytest -q
+
+  frontend:
+    name: Frontend typecheck + build (Node 20)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20" # matches frontend/Dockerfile (node:20-alpine)
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      # tsc && vite build — the same command Render runs on push, so a build
+      # failure shows up here first.
+      - name: Production build
+        run: npm run build
