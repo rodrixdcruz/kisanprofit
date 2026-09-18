@@ -52,18 +52,28 @@ def test_login_is_throttled_per_ip(monkeypatch, client):
     assert int(blocked.headers["Retry-After"]) >= 1
 
 
-def test_a_client_supplied_forwarded_header_cannot_buy_a_new_budget(monkeypatch, client):
-    """Proxies append to X-Forwarded-For, so only the rightmost hop is trusted."""
-    _enable(monkeypatch, RATE_LIMIT_LOGIN=1)
+def test_the_configured_forwarded_position_decides_the_bucket(monkeypatch, client):
+    """The parser must follow PROXY_IP_POSITION, since the trustworthy entry
+    differs between Render's edge (leftmost) and the bundled nginx (rightmost)."""
     body = {"mobile": "9000000003", "password": "wrong-password"}
-    # The client's own value sits on the left; the proxy's real peer is last.
-    spoofed = {"X-Forwarded-For": "1.2.3.4, 203.0.113.7"}
-    assert client.post("/api/auth/login", json=body, headers=spoofed).status_code == 401
-    assert client.post("/api/auth/login", json=body, headers=spoofed).status_code == 429
 
-    # Rotating the client-supplied prefix must not help.
-    rotated = {"X-Forwarded-For": "9.9.9.9, 203.0.113.7"}
-    assert client.post("/api/auth/login", json=body, headers=rotated).status_code == 429
+    # Render: the real client IP is first; anything after it is client-supplied
+    # (or an internal hop), so vary the tail and expect the same bucket.
+    _enable(monkeypatch, RATE_LIMIT_LOGIN=1)
+    assert client.post("/api/auth/login", json=body,
+                       headers={"X-Forwarded-For": "203.0.113.7, 10.0.0.1"}).status_code == 401
+    assert client.post("/api/auth/login", json=body,
+                       headers={"X-Forwarded-For": "203.0.113.7, 10.0.0.9"}).status_code == 429
+
+    # nginx: the peer it saw is appended last, so the tail is the client.
+    from app.core import ratelimit
+
+    monkeypatch.setattr(get_settings(), "PROXY_IP_POSITION", "last")
+    ratelimit.reset_limiters()
+    assert client.post("/api/auth/login", json=body,
+                       headers={"X-Forwarded-For": "10.0.0.9, 198.51.100.4"}).status_code == 401
+    assert client.post("/api/auth/login", json=body,
+                       headers={"X-Forwarded-For": "10.0.0.1, 198.51.100.4"}).status_code == 429
 
 
 def test_another_ip_has_its_own_budget(monkeypatch, client):

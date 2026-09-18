@@ -63,6 +63,18 @@ class Settings(BaseSettings):
     # this off if the app is ever exposed without one, or the header becomes
     # client-controlled and the limits can be bypassed.
     TRUST_PROXY_HEADERS: str = "true"
+    # Which X-Forwarded-For entry is the caller once that header is trusted:
+    #   "first" (default) — the leftmost entry. Render's edge puts the real
+    #     client IP at the front, and an internal hop appends itself at the
+    #     end, so the rightmost entry there is Render's own load balancer —
+    #     one address shared by many visitors, which is the wrong bucket.
+    #   "last" — the rightmost entry, for nginx's $proxy_add_x_forwarded_for,
+    #     which appends the peer it saw (this is what the bundled frontend
+    #     container does).
+    # Verified against the live Render deployment: with "last", bursts from a
+    # single client never tripped the limit because the key rotated across the
+    # platform's internal hops.
+    PROXY_IP_POSITION: str = "first"
 
     # --- demo seeding ---
     SEED_DEMO_DATA: str = "true"

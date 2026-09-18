@@ -71,17 +71,16 @@ def enabled() -> bool:
 def client_ip(request: Request) -> str:
     """Caller's IP, honouring the platform proxy's X-Forwarded-For when trusted.
 
-    Exactly one proxy hop is assumed (Render's edge, or the bundled nginx).
-    Proxies *append* to X-Forwarded-For rather than replacing it, so a client
-    that sends the header itself ends up on the left and the proxy's real peer
-    address on the right — hence the rightmost entry. Reading the leftmost
-    would let anyone mint a fresh rate-limit budget per request by rotating a
-    header, which is the whole point of the limit.
+    Which entry to believe is deployment-specific and configured — see
+    `PROXY_IP_POSITION` in Settings for why "first" is right on Render and
+    "last" is right behind the bundled nginx. Guessing wrong does not merely
+    weaken the limit: on Render the rightmost entry is an internal load
+    balancer address, so every visitor would share one bucket.
     """
     settings = get_settings()
     if settings.TRUST_PROXY_HEADERS.lower() in ("1", "true", "yes"):
         forwarded = request.headers.get("x-forwarded-for", "")
         hops = [hop.strip() for hop in forwarded.split(",") if hop.strip()]
         if hops:
-            return hops[-1]
+            return hops[-1] if settings.PROXY_IP_POSITION.strip().lower() == "last" else hops[0]
     return request.client.host if request.client else "unknown"
