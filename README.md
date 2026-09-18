@@ -186,10 +186,15 @@ Demo login: mobile **9999999999** / password **demo1234** (or one-tap "Explore D
 - **Rate limiting** on the three unauthenticated entry points (`login`, `register`,
   `demo-login`) and on AI chat (per account *and* per IP, so one visitor cannot drain a
   shared LLM quota). A per-instance sliding window; every allowance is env-tunable
-  (`RATE_LIMIT_*`). Which `X-Forwarded-For` entry counts as the caller is deployment
-  specific (`PROXY_IP_POSITION`: `first` on Render, `last` behind the bundled nginx —
-  guessing wrong on Render collapses every visitor onto the platform's load balancer).
-  Move the limiter to Redis or the platform edge before running >1 instance
+  (`RATE_LIMIT_*`). The caller is identified by an edge-owned header where the platform
+  sets one (`CF-Connecting-IP`/`X-Real-IP`, which a client cannot forge), falling back to
+  `X-Forwarded-For` at a configured position (`PROXY_IP_POSITION`: `first` on Render,
+  `last` behind the bundled nginx — guessing wrong on Render collapses every visitor onto
+  the platform's load balancer). The fallback is partly client-controlled, so read the
+  per-IP limits as flood protection; the edge header plus the per-account chat bucket are
+  what make abuse costly. Verified live on Render: a burst from one client trips the
+  limit, and re-sending the header does not buy a fresh budget. Move the limiter to Redis
+  or the platform edge before running >1 instance
 - The demo credentials and the one-tap entry live in **Settings** (`DEMO_MOBILE`,
   `DEMO_PASSWORD`, `DEMO_LOGIN_ENABLED`) — not in code, and not in the frontend bundle —
   so they can be rotated from the dashboard, with the reset re-hashing the configured
