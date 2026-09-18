@@ -164,8 +164,13 @@ Demo login: mobile **9999999999** / password **demo1234** (or one-tap "Explore D
 
 > 🔒 The demo account is read-only on purpose: every mutating API route rejects it with
 > `403`, so a public visitor can browse the whole app but cannot pollute or delete the
-> farm a judge is about to look at. A nightly workflow re-seeds it as a safety net, and
-> the in-app banner tells visitors to create their own account to record real data.
+> farm a judge is about to look at. The in-app banner tells visitors to create their own
+> account to record real data.
+>
+> A nightly workflow (`Verify + reset demo farm`) re-reads the public demo the way a judge
+> does and rebuilds it only if the numbers drifted — a red run means the live demo no
+> longer matches this README. To reset on demand, run that workflow manually from the
+> **Actions** tab with `force_reset` ticked.
 
 ## 🔒 Security
 

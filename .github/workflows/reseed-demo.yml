@@ -19,6 +19,11 @@ on:
   schedule:
     - cron: "37 20 * * *"
   workflow_dispatch:
+    inputs:
+      force_reset:
+        description: "Rebuild the demo farm even if nothing drifted"
+        type: boolean
+        default: false
 
 env:
   API_URL: https://kisanprofit-api.onrender.com
@@ -63,8 +68,11 @@ jobs:
           [ "$farms" = "1" ] || drift=true
           echo "drift=$drift" >> "$GITHUB_OUTPUT"
 
+      # Scheduled runs only rebuild on real drift; a manual dispatch can force
+      # one (Actions → Run workflow → force_reset), which also proves the
+      # RESEED_TOKEN secret still matches the service's env var.
       - name: Rebuild the demo farm (only if it drifted)
-        if: steps.check.outputs.drift == 'true'
+        if: ${{ steps.check.outputs.drift == 'true' || inputs.force_reset == true }}
         env:
           RESEED_TOKEN: ${{ secrets.RESEED_TOKEN }}
         run: |
