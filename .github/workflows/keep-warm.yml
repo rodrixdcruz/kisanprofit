@@ -1,0 +1,42 @@
+name: Keep backend awake
+
+# Render's free web services spin down after ~15 minutes without inbound
+# traffic, so the next visitor pays a 30-50s cold start. One request every 10
+# minutes keeps the instance warm — copied from the Weather-GPT workflow that
+# already runs in production there.
+#
+# This runs on GitHub's infrastructure, never on a local machine — the point is
+# that the deployment stays reachable with the laptop switched off.
+#
+# Free-tier note: one always-on service consumes ~744 of the 750 instance hours
+# Render gives free each month, so this fits alongside the Weather-GPT pinger
+# only while both backends stay on the free plan. If a month ever runs out of
+# hours, the pingers are the first thing to delete.
+
+on:
+  schedule:
+    # GitHub's cron is UTC-only. Minutes are offset from Weather-GPT's pinger
+    # (:3,:13,:23...) so the two workloads never fire on the same minute, and
+    # scheduled runs are DROPPED (not queued) when GitHub is busy, so landing
+    # on :00 is avoided too.
+    - cron: "8,18,28,38,48,58 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping the API health route
+        continue-on-error: true
+        run: |
+          # /health never touches the database, so warming the API does not
+          # hold a Neon connection open.
+          URL="https://kisanprofit-api.onrender.com/health"
+          code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 90 "$URL" || echo 000)
+          echo "$URL -> $code"
+          if [ "$code" = "200" ]; then
+            echo "Warm."
+          else
+            # Not a failure while the service is still being set up.
+            echo "::warning::$URL returned $code (is the Render service live yet?)"
+          fi
