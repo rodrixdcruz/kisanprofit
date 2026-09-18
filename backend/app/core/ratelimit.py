@@ -78,9 +78,22 @@ def client_ip(request: Request) -> str:
     balancer address, so every visitor would share one bucket.
     """
     settings = get_settings()
-    if settings.TRUST_PROXY_HEADERS.lower() in ("1", "true", "yes"):
-        forwarded = request.headers.get("x-forwarded-for", "")
-        hops = [hop.strip() for hop in forwarded.split(",") if hop.strip()]
-        if hops:
-            return hops[-1] if settings.PROXY_IP_POSITION.strip().lower() == "last" else hops[0]
+    if settings.TRUST_PROXY_HEADERS.lower() not in ("1", "true", "yes"):
+        return request.client.host if request.client else "unknown"
+
+    # Preferred: a header the edge *overwrites*, so a client cannot forge it.
+    # Cloudflare fronts Render and sets CF-Connecting-IP (True-Client-IP is the
+    # enterprise alias); the bundled nginx sets neither, so we fall through.
+    for header in ("cf-connecting-ip", "true-client-ip", "x-real-ip"):
+        value = request.headers.get(header, "").strip()
+        if value:
+            return value
+
+    # Fallback: X-Forwarded-For, which proxies append to rather than replace,
+    # so client-supplied text can sit in the list. Which end is the client is
+    # deployment-specific — see PROXY_IP_POSITION.
+    forwarded = request.headers.get("x-forwarded-for", "")
+    hops = [hop.strip() for hop in forwarded.split(",") if hop.strip()]
+    if hops:
+        return hops[-1] if settings.PROXY_IP_POSITION.strip().lower() == "last" else hops[0]
     return request.client.host if request.client else "unknown"

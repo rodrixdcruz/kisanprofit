@@ -52,6 +52,22 @@ def test_login_is_throttled_per_ip(monkeypatch, client):
     assert int(blocked.headers["Retry-After"]) >= 1
 
 
+def test_an_edge_owned_header_beats_the_forwarded_list(monkeypatch, client):
+    """Cloudflare overwrites CF-Connecting-IP, so prefer it: a client that
+    hand-writes X-Forwarded-For must not be able to move its own bucket."""
+    _enable(monkeypatch, RATE_LIMIT_LOGIN=1)
+    body = {"mobile": "9000000004", "password": "wrong-password"}
+    first = {"X-Forwarded-For": "1.2.3.4", "CF-Connecting-IP": "203.0.113.7"}
+    assert client.post("/api/auth/login", json=body, headers=first).status_code == 401
+
+    spoofed = {"X-Forwarded-For": "9.9.9.9", "CF-Connecting-IP": "203.0.113.7"}
+    assert client.post("/api/auth/login", json=body, headers=spoofed).status_code == 429
+
+    # A genuinely different client is unaffected.
+    other = {"X-Forwarded-For": "9.9.9.9", "CF-Connecting-IP": "198.51.100.4"}
+    assert client.post("/api/auth/login", json=body, headers=other).status_code == 401
+
+
 def test_the_configured_forwarded_position_decides_the_bucket(monkeypatch, client):
     """The parser must follow PROXY_IP_POSITION, since the trustworthy entry
     differs between Render's edge (leftmost) and the bundled nginx (rightmost)."""
