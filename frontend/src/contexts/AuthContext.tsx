@@ -39,8 +39,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = async (name: string, mobile: string, password: string, language = 'en') => {
     applyToken(await api.post<Token>('/auth/register', { name, mobile, password, language }))
   }
+  // One-tap entry asks the API for a demo session instead of embedding the
+  // demo credentials, so an operator can rotate that password without a
+  // frontend rebuild. Rate limited server-side; 404s when the demo is closed.
   const demoLogin = async () => {
-    applyToken(await api.post<Token>('/auth/login', { mobile: '9999999999', password: 'demo1234' }))
+    applyToken(await api.post<Token>('/auth/demo-login'))
   }
 
   useEffect(() => {

@@ -26,6 +26,7 @@ GUARD = "require_writable_user"
 DEMO_ALLOWED = {
     ("POST", "/api/auth/login"),
     ("POST", "/api/auth/register"),
+    ("POST", "/api/auth/demo-login"),  # read-only demo session; throttled
     ("PUT", "/api/auth/language"),
     ("POST", "/api/ai/chat"),
     ("POST", "/api/notifications/{notification_id}/read"),

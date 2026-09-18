@@ -4,7 +4,7 @@
 
 **Know Your Cost. Track Your Crop. Grow Your Profit.**
 
-[![tests](https://img.shields.io/badge/tests-72%20passing-brightgreen)](#quick-start) [![live](https://img.shields.io/badge/%E2%96%B6_live_demo-kisanprofit--web.onrender.com-2ea44f)](https://kisanprofit-web.onrender.com) [![i18n](https://img.shields.io/badge/i18n-EN%20%2F%20%E0%A4%B9%E0%A4%BF%E0%A4%A8%E0%A5%8D%E0%A4%A6%E0%A5%80%20%2F%20%E0%A4%AE%E0%A4%B0%E0%A4%BE%E0%A4%A0%E0%A5%80-blue)](#-features) [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](backend/) [![React 18](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white)](frontend/) [![FastAPI](https://img.shields.io/badge/FastAPI-0.110%2B-009688?logo=fastapi&logoColor=white)](backend/) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![tests](https://img.shields.io/badge/tests-81%20passing-brightgreen)](#quick-start) [![live](https://img.shields.io/badge/%E2%96%B6_live_demo-kisanprofit--web.onrender.com-2ea44f)](https://kisanprofit-web.onrender.com) [![i18n](https://img.shields.io/badge/i18n-EN%20%2F%20%E0%A4%B9%E0%A4%BF%E0%A4%A8%E0%A5%8D%E0%A4%A6%E0%A5%80%20%2F%20%E0%A4%AE%E0%A4%B0%E0%A4%BE%E0%A4%A0%E0%A5%80-blue)](#-features) [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](backend/) [![React 18](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white)](frontend/) [![FastAPI](https://img.shields.io/badge/FastAPI-0.110%2B-009688?logo=fastapi&logoColor=white)](backend/) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 </div>
 
@@ -16,7 +16,7 @@ Built for farmers, not bankers: big readable numbers, large touch targets, 10-se
 
 ---
 
-> ✅ **Repository status** — KisanProfit is a **complete, working, deployed application**: FastAPI + SQLAlchemy backend (72 passing tests), React 18 + TypeScript + Tailwind v4 frontend, live on Render (frontend static site + FastAPI service) with a managed Postgres. Locally, the same stack runs via Docker Compose with a pre-seeded demo farm. The README below is the original feature specification the implementation follows — the architecture tree and demo numbers are verified against the running app.
+> ✅ **Repository status** — KisanProfit is a **complete, working, deployed application**: FastAPI + SQLAlchemy backend (81 passing tests), React 18 + TypeScript + Tailwind v4 frontend, live on Render (frontend static site + FastAPI service) with a managed Postgres. Locally, the same stack runs via Docker Compose with a pre-seeded demo farm. The README below is the original feature specification the implementation follows — the architecture tree and demo numbers are verified against the running app.
 
 ---
 
@@ -143,7 +143,7 @@ behind a reverse proxy that forwards `/api` (like the bundled nginx setup).
 ### Run tests
 
 ```bash
-cd backend && .venv/bin/python -m pytest tests/ -q      # 72 tests
+cd backend && .venv/bin/python -m pytest tests/ -q      # 81 tests
 cd frontend && npm run build                             # tsc + vite production build
 ```
 
@@ -183,7 +183,14 @@ Demo login: mobile **9999999999** / password **demo1234** (or one-tap "Explore D
   test asserts no mutating route can be added without the guard
 - The nightly demo reset is a token-guarded admin route (`POST /api/admin/reseed-demo`);
   it 404s unless `RESEED_TOKEN` is configured, and the token is never in the repo
-- Rate limiting is ready to add behind a reverse proxy (documented in deployment)
+- **Rate limiting** on the three unauthenticated entry points (`login`, `register`,
+  `demo-login`) and on AI chat (per account *and* per IP, so one visitor cannot drain a
+  shared LLM quota). A per-instance sliding window; every allowance is env-tunable
+  (`RATE_LIMIT_*`). Move it to Redis or the platform edge before running >1 instance
+- The demo credentials and the one-tap entry live in **Settings** (`DEMO_MOBILE`,
+  `DEMO_PASSWORD`, `DEMO_LOGIN_ENABLED`) — not in code, and not in the frontend bundle —
+  so they can be rotated from the dashboard, with the reset re-hashing the configured
+  value instead of quietly restoring a published default
 
 ## 🐳 Deployment (production)
 

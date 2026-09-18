@@ -22,9 +22,9 @@ from app.models.models import (AIConversation, Crop, Expense, Farm,
 log = logging.getLogger(__name__)
 settings = get_settings()
 
-DEMO_MOBILE = "9999999999"
-DEMO_PASSWORD = "demo1234"
-DEMO_NAME = "Demo Farmer"
+def demo_mobile() -> str:
+    """The demo account's mobile number — env-overridable (see Settings)."""
+    return get_settings().DEMO_MOBILE
 
 
 def _seeding_enabled() -> bool:
@@ -35,7 +35,7 @@ def seed_demo_data(db: Session) -> None:
     """Create the demo farm once; a no-op if it already exists."""
     if not _seeding_enabled():
         return
-    if db.query(User).filter(User.mobile == DEMO_MOBILE).first():
+    if db.query(User).filter(User.mobile == demo_mobile()).first():
         return  # already seeded
     _build_demo_farm(db, _get_or_create_demo_user(db))
 
@@ -73,10 +73,11 @@ def reseed_demo_data(db: Session) -> dict:
 
 
 def _get_or_create_demo_user(db: Session) -> User:
-    farmer = db.query(User).filter(User.mobile == DEMO_MOBILE).first()
+    settings = get_settings()
+    farmer = db.query(User).filter(User.mobile == settings.DEMO_MOBILE).first()
     if farmer is None:
-        farmer = User(name=DEMO_NAME, mobile=DEMO_MOBILE,
-                      password_hash=hash_password(DEMO_PASSWORD),
+        farmer = User(name=settings.DEMO_NAME, mobile=settings.DEMO_MOBILE,
+                      password_hash=hash_password(settings.DEMO_PASSWORD),
                       language="en", is_demo=True)
         db.add(farmer)
         db.flush()
@@ -84,10 +85,15 @@ def _get_or_create_demo_user(db: Session) -> User:
 
 
 def _restore_demo_credentials(db: Session, farmer: User) -> None:
-    """Put the canonical demo credentials back, in case they were edited."""
-    farmer.name = DEMO_NAME
+    """Put the configured demo credentials back, in case they were edited.
+
+    Re-hashes from Settings, so a rotated `DEMO_PASSWORD` takes effect on the
+    next reset instead of being silently reverted to a value baked into code.
+    """
+    settings = get_settings()
+    farmer.name = settings.DEMO_NAME
     farmer.is_demo = True
-    farmer.password_hash = hash_password(DEMO_PASSWORD)
+    farmer.password_hash = hash_password(settings.DEMO_PASSWORD)
     db.commit()
 
 
@@ -211,7 +217,7 @@ def _build_demo_farm(db: Session, farmer: User) -> None:
     ))
 
     db.commit()
-    log.info("Demo farm seeded (mobile %s)", DEMO_MOBILE)
+    log.info("Demo farm seeded (mobile %s)", get_settings().DEMO_MOBILE)
 
 
 def seed_at_startup() -> None:

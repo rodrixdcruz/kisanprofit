@@ -1,8 +1,10 @@
-"""FastAPI dependencies: JWT bearer auth resolving to a User row."""
-from fastapi import Depends, HTTPException, status
+"""FastAPI dependencies: auth (JWT → User row), the demo guard, throttling."""
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
+from app.core import ratelimit
+from app.core.config import get_settings
 from app.core.db import get_db
 from app.core.security import decode_token
 from app.models.models import User
@@ -38,6 +40,46 @@ def require_writable_user(user: User = Depends(get_current_user)) -> User:
             "The demo account is read-only. Create your own free account to add or edit data.",
         )
     return user
+
+
+def _enforce(bucket: str, key: str, limit: int) -> None:
+    allowed, retry_after = ratelimit.window(bucket, limit).hit(key)
+    if not allowed:
+        raise HTTPException(
+            status.HTTP_429_TOO_MANY_REQUESTS,
+            "Too many requests — please wait a moment and try again.",
+            headers={"Retry-After": str(int(retry_after) + 1)},
+        )
+
+
+def rate_limit(name: str, limit_setting: str):
+    """Throttle a route per client IP.
+
+    `limit_setting` names the Settings field holding the allowance, so the
+    bucket can be retuned from the environment without a code change.
+    """
+    def dependency(request: Request) -> None:
+        if not ratelimit.enabled():
+            return
+        _enforce(name, f"{name}:ip:{ratelimit.client_ip(request)}",
+                 int(getattr(get_settings(), limit_setting)))
+
+    return dependency
+
+
+def rate_limit_user(name: str, limit_setting: str):
+    """Throttle a route per signed-in account (stack after auth).
+
+    Used alongside the per-IP bucket on the AI chat so a single account cannot
+    drain a shared LLM quota, and a single IP cannot rotate accounts to.
+    """
+    def dependency(request: Request, user: User = Depends(get_current_user)) -> None:
+        if not ratelimit.enabled():
+            return
+        _enforce(name, f"{name}:user:{user.id}",
+                 int(getattr(get_settings(), limit_setting)))
+
+    return dependency
 
 
 def require_owned_crop(db: Session, user: User, crop_id: int):

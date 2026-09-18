@@ -8,7 +8,12 @@ import pytest
 
 from app.core.config import get_settings
 from app.core.db import SessionLocal
-from app.seed import DEMO_MOBILE, DEMO_PASSWORD, seed_demo_data
+from app.seed import seed_demo_data
+
+# The demo credentials are env-overridable now; read them from Settings so the
+# tests follow a deployment that rotated them.
+DEMO_MOBILE = get_settings().DEMO_MOBILE
+DEMO_PASSWORD = get_settings().DEMO_PASSWORD
 
 
 @pytest.fixture()

@@ -2,16 +2,17 @@ name: Verify + reset demo farm
 
 # The shared demo account is read-only (see backend/app/api/deps.py), so the
 # judge-facing numbers should never drift. This job therefore *checks first*:
-# it logs in with the public demo credentials, reads the same endpoints a judge
-# reads, and only rebuilds the farm if something actually drifted. A red run
-# means "the live demo no longer matches the README" — the alert you want —
-# rather than "the cron ran".
+# it enters the demo the same way a visitor does, reads the same endpoints, and
+# only rebuilds the farm if something actually drifted. A red run means "the
+# live demo no longer matches the README" — the alert you want — rather than
+# "the cron ran".
 #
 # It runs on GitHub's infrastructure, so it keeps working with the laptop off.
 #
 # Free-tier notes:
-# - 20:37 UTC is 02:07 IST, deliberately clear of the keep-warm pings (:08/:28)
-#   so the two scheduled jobs never wake the instance at the same moment.
+# - 20:37 UTC is 02:07 IST. The keep-warm pinger fires on the :08/:18/:28/:38
+#   cadence, so landing on :37 keeps the two scheduled jobs from waking the
+#   instance at the same moment.
 # - Scheduled workflows are disabled after ~60 days without repo activity;
 #   GitHub emails the owner, and `workflow_dispatch` remains available.
 
@@ -27,9 +28,13 @@ on:
 
 env:
   API_URL: https://kisanprofit-api.onrender.com
-  # The README's documented demo login. Public by design — read-only account.
+  # Public by design — a read-only account. Day-to-day the session comes from
+  # the one-tap demo entry rather than a stored password, so this job keeps
+  # working when an operator rotates DEMO_PASSWORD; the pair below exists to
+  # assert the login printed in the README still works, and can be overridden
+  # with a DEMO_PASSWORD secret when it is rotated.
   DEMO_MOBILE: "9999999999"
-  DEMO_PASSWORD: "demo1234"
+  DEMO_PASSWORD: ${{ secrets.DEMO_PASSWORD || 'demo1234' }}
   # What the README promises a judge they will see.
   EXPECTED_EXPENSES: "14"
   EXPECTED_PROFIT: "85400"
@@ -42,12 +47,11 @@ jobs:
         id: check
         run: |
           set -euo pipefail
-          token=$(curl -s --max-time 120 -X POST "$API_URL/api/auth/login" \
-            -H 'Content-Type: application/json' \
-            -d "{\"mobile\":\"$DEMO_MOBILE\",\"password\":\"$DEMO_PASSWORD\"}" \
+          token=$(curl -s --max-time 120 -X POST "$API_URL/api/auth/demo-login" \
             | jq -r '.access_token // empty')
           if [ -z "$token" ]; then
-            echo "::error::demo login failed — is the API awake/deployed?"
+            echo "::error::one-tap demo entry failed — is the API awake/deployed,"
+            echo "::error::and DEMO_LOGIN_ENABLED left on?"
             exit 1
           fi
 
@@ -96,9 +100,7 @@ jobs:
       - name: Assert the demo farm matches the README
         run: |
           set -euo pipefail
-          token=$(curl -s --max-time 120 -X POST "$API_URL/api/auth/login" \
-            -H 'Content-Type: application/json' \
-            -d "{\"mobile\":\"$DEMO_MOBILE\",\"password\":\"$DEMO_PASSWORD\"}" \
+          token=$(curl -s --max-time 120 -X POST "$API_URL/api/auth/demo-login" \
             | jq -r '.access_token // empty')
           expenses=$(curl -s --max-time 60 -H "Authorization: Bearer $token" \
             "$API_URL/api/expenses" | jq 'length')
@@ -110,9 +112,16 @@ jobs:
             -H "Authorization: Bearer $token" -H 'Content-Type: application/json' \
             -d '{"category":"labor","amount":1}' "$API_URL/api/expenses")
 
-          echo "expenses=$expenses profit=$profit demo-write=$write_code"
+          # ...and the login printed in the README must still work, or judges
+          # following it by hand will be turned away.
+          readme_login=$(curl -s -o /dev/null -w '%{http_code}' --max-time 60 -X POST \
+            "$API_URL/api/auth/login" -H 'Content-Type: application/json' \
+            -d "{\"mobile\":\"$DEMO_MOBILE\",\"password\":\"$DEMO_PASSWORD\"}")
+
+          echo "expenses=$expenses profit=$profit demo-write=$write_code readme-login=$readme_login"
           fail=0
           [ "$expenses" = "$EXPECTED_EXPENSES" ] || { echo "::error::expected $EXPECTED_EXPENSES expenses, got $expenses"; fail=1; }
           [ "$profit" = "$EXPECTED_PROFIT" ] || { echo "::error::expected net profit $EXPECTED_PROFIT, got $profit"; fail=1; }
           [ "$write_code" = "403" ] || { echo "::error::demo account is writable (got $write_code, want 403)"; fail=1; }
+          [ "$readme_login" = "200" ] || { echo "::error::the README's demo login returned $readme_login — rotated DEMO_MOBILE/DEMO_PASSWORD? update the README and set the DEMO_PASSWORD secret"; fail=1; }
           exit $fail

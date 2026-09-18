@@ -114,5 +114,6 @@ def test_health(client):
 
 def test_demo_seed_idempotent_shape():
     """Seeding uses a fixed demo mobile and is guarded against duplicates."""
-    from app.seed import DEMO_MOBILE
-    assert DEMO_MOBILE.isdigit() and len(DEMO_MOBILE) == 10
+    from app.core.config import get_settings
+    mobile = get_settings().DEMO_MOBILE
+    assert mobile.isdigit() and len(mobile) == 10

@@ -9,6 +9,10 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 os.environ["SEED_DEMO_DATA"] = "false"
 os.environ["DATABASE_URL"] = "sqlite:///./test_kisanprofit.db"
 os.environ["SECRET_KEY"] = "test-secret-key"
+# The suite registers/logs in far more often than a real client would, and all
+# from one "IP", so throttling is off here. test_rate_limit.py turns it back on
+# for the buckets it exercises.
+os.environ["RATE_LIMIT_ENABLED"] = "false"
 
 from fastapi.testclient import TestClient  # noqa: E402
 
@@ -32,6 +36,16 @@ def client():
     # Schema persists across tests in the session; tests use unique mobiles.
     with TestClient(app) as c:
         yield c
+
+
+@pytest.fixture(autouse=True)
+def _fresh_limiters():
+    """No rate-limit state leaks between tests (see core/ratelimit.py)."""
+    from app.core import ratelimit
+
+    ratelimit.reset_limiters()
+    yield
+    ratelimit.reset_limiters()
 
 
 @pytest.fixture()

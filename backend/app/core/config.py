@@ -37,6 +37,33 @@ class Settings(BaseSettings):
     # --- location ---
     NOMINATIM_EMAIL: str = ""
 
+    # --- demo account ---
+    # Public by design (the README documents the login) and read-only, so it is
+    # safe to publish. These live here rather than in code so an operator can
+    # rotate the demo password from the dashboard and have the reset pick it up.
+    DEMO_MOBILE: str = "9999999999"
+    DEMO_PASSWORD: str = "demo1234"
+    DEMO_NAME: str = "Demo Farmer"
+    # One-tap public entry to the demo farm (POST /api/auth/demo-login), which
+    # lets the frontend stop embedding credentials. Set false to require real
+    # accounts — the demo link then 404s.
+    DEMO_LOGIN_ENABLED: str = "true"
+
+    # --- rate limiting (per instance, in-process) ---
+    # Blunts password guessing, scripted sign-ups and AI-quota burn on a public
+    # free-tier origin. Tuned generously: a whole venue can share one NAT IP.
+    RATE_LIMIT_ENABLED: str = "true"
+    RATE_LIMIT_WINDOW_SECONDS: int = 300
+    RATE_LIMIT_LOGIN: int = 20          # per IP
+    RATE_LIMIT_REGISTER: int = 10       # per IP
+    RATE_LIMIT_DEMO_LOGIN: int = 60     # per IP — one-tap button, shared NAT
+    RATE_LIMIT_CHAT_PER_USER: int = 30  # per account (guards the LLM quota)
+    RATE_LIMIT_CHAT_PER_IP: int = 60    # per IP
+    # Behind a platform proxy the client IP arrives in X-Forwarded-For. Turn
+    # this off if the app is ever exposed without one, or the header becomes
+    # client-controlled and the limits can be bypassed.
+    TRUST_PROXY_HEADERS: str = "true"
+
     # --- demo seeding ---
     SEED_DEMO_DATA: str = "true"
     # Shared secret for POST /api/admin/reseed-demo (used by the nightly
