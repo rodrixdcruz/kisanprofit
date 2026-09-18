@@ -19,3 +19,5 @@ Thumbs.db
 # Logs
 *.log
 /tmp/
+# Local port-shift overrides are machine-specific
+docker-compose.override.yml
