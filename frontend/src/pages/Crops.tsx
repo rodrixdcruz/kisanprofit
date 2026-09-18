@@ -2,8 +2,9 @@ import { useCallback, useEffect, useState } from 'react'
 import { useApi } from '../hooks/useApi'
 import { api } from '../lib/api'
 import { useI18n } from '../contexts/I18nContext'
+import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
-import { Badge, Button, Card, EmptyState, ErrorState, Input, Modal, Select, Spinner } from '../components/ui'
+import { Badge, Button, Card, DemoReadOnlyNotice, EmptyState, ErrorState, Input, Modal, Select, Spinner } from '../components/ui'
 import type { Crop, CropProfit, Farm } from '../types'
 
 const rs = (n: number) => `₹${n.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`
@@ -16,6 +17,7 @@ function daysSince(dateStr: string | null): number | null {
 
 export default function Crops() {
   const { t } = useI18n()
+  const { isReadOnly } = useAuth()
   const { push } = useToast()
   const { data: farms } = useApi<Farm[]>('/farms')
   const { data: profits, refresh: refreshProfits } = useApi<CropProfit[]>('/analytics/crops')
@@ -70,10 +72,12 @@ export default function Crops() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-extrabold text-green-900">{t('nav.crops')}</h1>
-        <Button onClick={() => setOpen(true)} disabled={(farms ?? []).length === 0}>
+        <Button onClick={() => setOpen(true)} disabled={isReadOnly || (farms ?? []).length === 0}>
           ＋ {t('crops.add')}
         </Button>
       </div>
+
+      {isReadOnly && <DemoReadOnlyNotice />}
 
       {allCrops !== null && allCrops.length === 0 && <EmptyState icon="🌾" message={t('common.empty')} />}
 
@@ -119,7 +123,7 @@ export default function Crops() {
                 })}
               </div>
               <div className="mt-3">
-                <Button variant="danger" onClick={() => remove(c.farm_id, c.id)}>{t('common.delete')}</Button>
+                <Button variant="danger" onClick={() => remove(c.farm_id, c.id)} disabled={isReadOnly}>{t('common.delete')}</Button>
               </div>
             </Card>
           )

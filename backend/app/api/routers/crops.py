@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, require_writable_user
 from app.core.db import get_db
 from app.models.models import Crop, Farm, User
 from app.schemas.schemas import CropCreate, CropOut
@@ -24,7 +24,7 @@ def list_crops(farm_id: int, user: User = Depends(get_current_user), db: Session
 
 
 @router.post("", response_model=CropOut, status_code=201)
-def create_crop(farm_id: int, payload: CropCreate, user: User = Depends(get_current_user),
+def create_crop(farm_id: int, payload: CropCreate, user: User = Depends(require_writable_user),
                 db: Session = Depends(get_db)):
     _own_farm(db, user, farm_id)
     crop = Crop(farm_id=farm_id, **payload.model_dump())
@@ -46,7 +46,7 @@ def get_crop(farm_id: int, crop_id: int, user: User = Depends(get_current_user),
 
 @router.put("/{crop_id}", response_model=CropOut)
 def update_crop(farm_id: int, crop_id: int, payload: CropCreate,
-                user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+                user: User = Depends(require_writable_user), db: Session = Depends(get_db)):
     _own_farm(db, user, farm_id)
     crop = db.query(Crop).filter(Crop.id == crop_id, Crop.farm_id == farm_id).first()
     if not crop:
@@ -62,7 +62,7 @@ def update_crop(farm_id: int, crop_id: int, payload: CropCreate,
 
 @router.patch("/{crop_id}/status", response_model=CropOut)
 def set_status(farm_id: int, crop_id: int, status: str,
-               user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+               user: User = Depends(require_writable_user), db: Session = Depends(get_db)):
     if status not in ("active", "harvested", "sold"):
         raise HTTPException(422, "status must be active | harvested | sold")
     _own_farm(db, user, farm_id)
@@ -76,7 +76,7 @@ def set_status(farm_id: int, crop_id: int, status: str,
 
 
 @router.delete("/{crop_id}", status_code=204)
-def delete_crop(farm_id: int, crop_id: int, user: User = Depends(get_current_user),
+def delete_crop(farm_id: int, crop_id: int, user: User = Depends(require_writable_user),
                 db: Session = Depends(get_db)):
     _own_farm(db, user, farm_id)
     crop = db.query(Crop).filter(Crop.id == crop_id, Crop.farm_id == farm_id).first()

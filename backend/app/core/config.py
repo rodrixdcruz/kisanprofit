@@ -39,6 +39,10 @@ class Settings(BaseSettings):
 
     # --- demo seeding ---
     SEED_DEMO_DATA: str = "true"
+    # Shared secret for POST /api/admin/reseed-demo (used by the nightly
+    # workflow). Empty means the route is disabled entirely — there is no
+    # built-in default, so an unconfigured deploy cannot be reset by strangers.
+    RESEED_TOKEN: str = ""
 
     # --- optional OCR (gemini vision) ---
     OCR_ENABLED: str = "auto"  # auto: on when GEMINI_API_KEY present

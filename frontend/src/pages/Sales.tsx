@@ -2,14 +2,16 @@ import { useCallback, useEffect, useState } from 'react'
 import { useApi } from '../hooks/useApi'
 import { api } from '../lib/api'
 import { useI18n } from '../contexts/I18nContext'
+import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
-import { Button, Card, EmptyState, Input, Select, Spinner } from '../components/ui'
+import { Button, Card, DemoReadOnlyNotice, EmptyState, Input, Select, Spinner } from '../components/ui'
 import type { Crop, Farm, Sale } from '../types'
 
 const rs = (n: number) => `₹${n.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`
 
 export default function Sales() {
   const { t } = useI18n()
+  const { isReadOnly } = useAuth()
   const { push } = useToast()
   const { data: farms } = useApi<Farm[]>('/farms')
   const [crops, setCrops] = useState<Crop[]>([])
@@ -62,6 +64,8 @@ export default function Sales() {
     <div className="space-y-4">
       <h1 className="text-2xl font-extrabold text-green-900">{t('nav.sales')}</h1>
 
+      {isReadOnly && <DemoReadOnlyNotice />}
+
       <Card>
         <div className="grid gap-2 sm:grid-cols-3">
           <Select label={t('nav.crops')} value={cropId} onChange={(e) => setCropId(e.target.value)}>
@@ -83,7 +87,7 @@ export default function Sales() {
           <p className="mt-2 text-sm text-gray-600">{t('sales.net')}: <b className="text-green-700">{rs(draftNet)}</b></p>
         )}
         <div className="mt-2 flex justify-end">
-          <Button onClick={save} disabled={busy || !cropId}>{t('sales.record')}</Button>
+          <Button onClick={save} disabled={busy || isReadOnly || !cropId}>{t('sales.record')}</Button>
         </div>
       </Card>
 

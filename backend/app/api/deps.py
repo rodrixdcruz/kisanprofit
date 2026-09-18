@@ -25,6 +25,21 @@ def get_current_user(
     return user
 
 
+def require_writable_user(user: User = Depends(get_current_user)) -> User:
+    """Auth dependency for every route that mutates farm data.
+
+    The shared demo account is deliberately read-only: it is the judge-facing
+    walkthrough, so a public visitor must not be able to pollute (or delete)
+    the seeded farm. A nightly workflow re-seeds it as a safety net.
+    """
+    if user.is_demo:
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            "The demo account is read-only. Create your own free account to add or edit data.",
+        )
+    return user
+
+
 def require_owned_crop(db: Session, user: User, crop_id: int):
     """Load a crop owned by the user or 404 — per-user scoping helper."""
     from app.models.models import Crop

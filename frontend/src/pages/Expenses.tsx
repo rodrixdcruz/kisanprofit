@@ -2,9 +2,10 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useApi } from '../hooks/useApi'
 import { api } from '../lib/api'
 import { useI18n } from '../contexts/I18nContext'
+import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 import { useVoice } from '../hooks/useVoice'
-import { Button, Card, EmptyState, ErrorState, Input, Select, Spinner } from '../components/ui'
+import { Button, Card, DemoReadOnlyNotice, EmptyState, ErrorState, Input, Select, Spinner } from '../components/ui'
 import type { Crop, Expense, Farm } from '../types'
 
 const CATEGORIES = ['seeds', 'fertilizer', 'pesticide', 'labor', 'fuel', 'irrigation',
@@ -21,6 +22,7 @@ interface Stats { total: number; count: number; this_month: number; average: num
 
 export default function Expenses() {
   const { t } = useI18n()
+  const { isReadOnly } = useAuth()
   const { push } = useToast()
   const voice = useVoice()
   const fileRef = useRef<HTMLInputElement>(null)
@@ -82,6 +84,7 @@ export default function Expenses() {
   }
 
   const quickAdd = async (cat: string, amount: number) => {
+    if (isReadOnly) return
     await api.post('/expenses', { category: cat, amount })
     load()
     push('success', `${t(`cat.${cat}`)} ${rs(amount)}`)
@@ -112,8 +115,10 @@ export default function Expenses() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-extrabold text-green-900">{t('nav.expenses')}</h1>
-        <Button onClick={() => setOpen(true)}>＋ {t('exp.add')}</Button>
+        <Button onClick={() => setOpen(true)} disabled={isReadOnly}>＋ {t('exp.add')}</Button>
       </div>
+
+      {isReadOnly && <DemoReadOnlyNotice />}
 
       {stats && (
         <div className="grid grid-cols-2 gap-3 text-sm lg:grid-cols-4">
@@ -128,13 +133,13 @@ export default function Expenses() {
         <div className="mb-3 text-sm font-semibold text-gray-600">{t('exp.quickAdd')}</div>
         <div className="flex flex-wrap gap-2">
           {QUICK.map(({ cat, amount }) => (
-            <button key={cat} onClick={() => quickAdd(cat, amount)}
-              className="btn-tap rounded-xl border border-dashed border-green-600 px-4 py-2 text-sm font-semibold text-green-800">
+            <button key={cat} onClick={() => quickAdd(cat, amount)} disabled={isReadOnly}
+              className="btn-tap rounded-xl border border-dashed border-green-600 px-4 py-2 text-sm font-semibold text-green-800 disabled:opacity-50">
               {t(`cat.${cat}`)} {rs(amount)}
             </button>
           ))}
-          <button onClick={() => fileRef.current?.click()} disabled={ocrBusy}
-            className="btn-tap rounded-xl border border-dashed border-gray-400 px-4 py-2 text-sm text-gray-600">
+          <button onClick={() => fileRef.current?.click()} disabled={ocrBusy || isReadOnly}
+            className="btn-tap rounded-xl border border-dashed border-gray-400 px-4 py-2 text-sm text-gray-600 disabled:opacity-50">
             📷 {ocrBusy ? '…' : 'Scan receipt'}
           </button>
           <input ref={fileRef} type="file" accept="image/*" hidden
@@ -172,7 +177,7 @@ export default function Expenses() {
               </div>
               <div className="flex items-center gap-3">
                 <span className="text-lg font-bold text-red-700">−{rs(e.amount)}</span>
-                <Button variant="ghost" onClick={async () => {
+                <Button variant="ghost" disabled={isReadOnly} onClick={async () => {
                   if (!confirm('Delete?')) return
                   await api.delete(`/expenses/${e.id}`); load()
                 }}>🗑</Button>
@@ -225,7 +230,7 @@ export default function Expenses() {
               )}
               <div className="flex justify-end gap-2">
                 <Button variant="ghost" onClick={() => setOpen(false)}>{t('common.cancel')}</Button>
-                <Button onClick={save} disabled={!form.amount}>{t('common.save')}</Button>
+                <Button onClick={save} disabled={isReadOnly || !form.amount}>{t('common.save')}</Button>
               </div>
             </div>
           </div>

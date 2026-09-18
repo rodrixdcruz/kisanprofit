@@ -5,7 +5,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user, require_owned_crop
+from app.api.deps import (get_current_user, require_owned_crop,
+                          require_writable_user)
 from app.core.db import get_db
 from app.models.models import Expense, User
 from app.schemas.schemas import ExpenseCreate, ExpenseOut
@@ -49,7 +50,7 @@ def list_expenses(
 
 
 @router.post("", response_model=ExpenseOut, status_code=201)
-def create_expense(payload: ExpenseCreate, user: User = Depends(get_current_user),
+def create_expense(payload: ExpenseCreate, user: User = Depends(require_writable_user),
                    db: Session = Depends(get_db)):
     if payload.crop_id is not None:
         require_owned_crop(db, user, payload.crop_id)
@@ -90,7 +91,7 @@ def expense_stats(user: User = Depends(get_current_user), db: Session = Depends(
 
 @router.put("/{expense_id}", response_model=ExpenseOut)
 def update_expense(expense_id: int, payload: ExpenseCreate,
-                   user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+                   user: User = Depends(require_writable_user), db: Session = Depends(get_db)):
     exp = db.query(Expense).filter(Expense.id == expense_id, Expense.user_id == user.id).first()
     if not exp:
         raise HTTPException(404, "Expense not found")
@@ -105,7 +106,7 @@ def update_expense(expense_id: int, payload: ExpenseCreate,
 
 
 @router.delete("/{expense_id}", status_code=204)
-def delete_expense(expense_id: int, user: User = Depends(get_current_user),
+def delete_expense(expense_id: int, user: User = Depends(require_writable_user),
                    db: Session = Depends(get_db)):
     exp = db.query(Expense).filter(Expense.id == expense_id, Expense.user_id == user.id).first()
     if not exp:

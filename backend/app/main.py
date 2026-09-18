@@ -39,13 +39,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from app.api.routers import (ai, analytics, auth, crops, expenses, farms,  # noqa: E402
-                             integrations, location, market, notifications,
-                             ocr, production, reports, sales, weather)
+from app.api.routers import (admin, ai, analytics, auth, crops, expenses,  # noqa: E402
+                             farms, integrations, location, market,
+                             notifications, ocr, production, reports, sales,
+                             weather)
 
 API_PREFIX = "/api"
 for r in (auth, farms, crops, expenses, production, sales, analytics, ai,
-          weather, market, reports, notifications, location, ocr, integrations):
+          weather, market, reports, notifications, location, ocr, integrations,
+          admin):
     app.include_router(r.router, prefix=API_PREFIX)
 
 

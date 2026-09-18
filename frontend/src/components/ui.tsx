@@ -1,4 +1,5 @@
 import { ReactNode } from 'react'
+import { useI18n } from '../contexts/I18nContext'
 
 export function Button({ children, onClick, type = 'button', variant = 'primary',
                          className = '', disabled }: {
@@ -89,6 +90,17 @@ export function Select(props: React.SelectHTMLAttributes<HTMLSelectElement> & { 
         {children}
       </select>
     </label>
+  )
+}
+
+export function DemoReadOnlyNotice({ className = '' }: { className?: string }) {
+  const { t } = useI18n()
+  return (
+    <div role="note"
+      className={`rounded-2xl bg-amber-50 px-4 py-3 text-sm leading-relaxed text-amber-900 ring-1 ring-amber-200 ${className}`}>
+      <span className="mr-1">🔒</span>
+      <b>{t('demo.badge')}</b> — {t('demo.readonly')}
+    </div>
   )
 }
 

@@ -1,0 +1,110 @@
+name: Verify + reset demo farm
+
+# The shared demo account is read-only (see backend/app/api/deps.py), so the
+# judge-facing numbers should never drift. This job therefore *checks first*:
+# it logs in with the public demo credentials, reads the same endpoints a judge
+# reads, and only rebuilds the farm if something actually drifted. A red run
+# means "the live demo no longer matches the README" — the alert you want —
+# rather than "the cron ran".
+#
+# It runs on GitHub's infrastructure, so it keeps working with the laptop off.
+#
+# Free-tier notes:
+# - 20:37 UTC is 02:07 IST, deliberately clear of the keep-warm pings (:08/:28)
+#   so the two scheduled jobs never wake the instance at the same moment.
+# - Scheduled workflows are disabled after ~60 days without repo activity;
+#   GitHub emails the owner, and `workflow_dispatch` remains available.
+
+on:
+  schedule:
+    - cron: "37 20 * * *"
+  workflow_dispatch:
+
+env:
+  API_URL: https://kisanprofit-api.onrender.com
+  # The README's documented demo login. Public by design — read-only account.
+  DEMO_MOBILE: "9999999999"
+  DEMO_PASSWORD: "demo1234"
+  # What the README promises a judge they will see.
+  EXPECTED_EXPENSES: "14"
+  EXPECTED_PROFIT: "85400"
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read the demo farm's headline numbers
+        id: check
+        run: |
+          set -euo pipefail
+          token=$(curl -s --max-time 120 -X POST "$API_URL/api/auth/login" \
+            -H 'Content-Type: application/json' \
+            -d "{\"mobile\":\"$DEMO_MOBILE\",\"password\":\"$DEMO_PASSWORD\"}" \
+            | jq -r '.access_token // empty')
+          if [ -z "$token" ]; then
+            echo "::error::demo login failed — is the API awake/deployed?"
+            exit 1
+          fi
+
+          expenses=$(curl -s --max-time 60 -H "Authorization: Bearer $token" \
+            "$API_URL/api/expenses" | jq 'length')
+          dash=$(curl -s --max-time 60 -H "Authorization: Bearer $token" \
+            "$API_URL/api/analytics/dashboard")
+          profit=$(printf '%s' "$dash" | jq -r '.net_profit | round')
+          farms=$(printf '%s' "$dash" | jq -r '.total_farms')
+
+          echo "expenses=$expenses (want $EXPECTED_EXPENSES)"
+          echo "net_profit=$profit (want $EXPECTED_PROFIT)"
+          echo "farms=$farms (want 1)"
+
+          drift=false
+          [ "$expenses" = "$EXPECTED_EXPENSES" ] || drift=true
+          [ "$profit" = "$EXPECTED_PROFIT" ] || drift=true
+          [ "$farms" = "1" ] || drift=true
+          echo "drift=$drift" >> "$GITHUB_OUTPUT"
+
+      - name: Rebuild the demo farm (only if it drifted)
+        if: steps.check.outputs.drift == 'true'
+        env:
+          RESEED_TOKEN: ${{ secrets.RESEED_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${RESEED_TOKEN:-}" ]; then
+            echo "::error::demo farm drifted and no RESEED_TOKEN secret is set."
+            echo "::error::Set it to the same value as the API's RESEED_TOKEN env var."
+            exit 1
+          fi
+          code=$(curl -s -o /tmp/reseed.json -w '%{http_code}' --max-time 120 -X POST \
+            -H "X-Reseed-Token: $RESEED_TOKEN" "$API_URL/api/admin/reseed-demo")
+          echo "POST /api/admin/reseed-demo -> $code"
+          cat /tmp/reseed.json 2>/dev/null || true
+          echo
+          # 404 means RESEED_TOKEN is unset on the service; 403 means it differs.
+          if [ "$code" != "200" ]; then
+            echo "::error::reseed returned $code (404 = token not configured on the service)"
+            exit 1
+          fi
+
+      - name: Assert the demo farm matches the README
+        run: |
+          set -euo pipefail
+          token=$(curl -s --max-time 120 -X POST "$API_URL/api/auth/login" \
+            -H 'Content-Type: application/json' \
+            -d "{\"mobile\":\"$DEMO_MOBILE\",\"password\":\"$DEMO_PASSWORD\"}" \
+            | jq -r '.access_token // empty')
+          expenses=$(curl -s --max-time 60 -H "Authorization: Bearer $token" \
+            "$API_URL/api/expenses" | jq 'length')
+          profit=$(curl -s --max-time 60 -H "Authorization: Bearer $token" \
+            "$API_URL/api/analytics/dashboard" | jq -r '.net_profit | round')
+
+          # The demo is read-only, so this must also still be true.
+          write_code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 60 -X POST \
+            -H "Authorization: Bearer $token" -H 'Content-Type: application/json' \
+            -d '{"category":"labor","amount":1}' "$API_URL/api/expenses")
+
+          echo "expenses=$expenses profit=$profit demo-write=$write_code"
+          fail=0
+          [ "$expenses" = "$EXPECTED_EXPENSES" ] || { echo "::error::expected $EXPECTED_EXPENSES expenses, got $expenses"; fail=1; }
+          [ "$profit" = "$EXPECTED_PROFIT" ] || { echo "::error::expected net profit $EXPECTED_PROFIT, got $profit"; fail=1; }
+          [ "$write_code" = "403" ] || { echo "::error::demo account is writable (got $write_code, want 403)"; fail=1; }
+          exit $fail

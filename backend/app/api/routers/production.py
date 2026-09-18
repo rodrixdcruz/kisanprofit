@@ -2,7 +2,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user, require_owned_crop
+from app.api.deps import (get_current_user, require_owned_crop,
+                          require_writable_user)
 from app.core.db import get_db
 from app.models.models import Crop, Production, User
 from app.schemas.schemas import ProductionCreate, ProductionOut
@@ -18,7 +19,8 @@ def list_production(crop_id: int, user: User = Depends(get_current_user),
 
 
 @router.post("", response_model=ProductionOut, status_code=201)
-def add_production(crop_id: int, payload: ProductionCreate, user: User = Depends(get_current_user),
+def add_production(crop_id: int, payload: ProductionCreate,
+                   user: User = Depends(require_writable_user),
                    db: Session = Depends(get_db)):
     crop: Crop = require_owned_crop(db, user, crop_id)
     rec = Production(crop_id=crop.id, **payload.model_dump())

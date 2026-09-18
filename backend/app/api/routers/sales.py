@@ -2,7 +2,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user, require_owned_crop
+from app.api.deps import (get_current_user, require_owned_crop,
+                          require_writable_user)
 from app.core.db import get_db
 from app.models.models import Sale, User
 from app.schemas.schemas import SaleCreate, SaleOut
@@ -17,7 +18,8 @@ def list_sales(crop_id: int, user: User = Depends(get_current_user), db: Session
 
 
 @router.post("", response_model=SaleOut, status_code=201)
-def add_sale(crop_id: int, payload: SaleCreate, user: User = Depends(get_current_user),
+def add_sale(crop_id: int, payload: SaleCreate,
+             user: User = Depends(require_writable_user),
              db: Session = Depends(get_db)):
     crop = require_owned_crop(db, user, crop_id)
     sale = Sale(user_id=user.id, crop_id=crop.id, **payload.model_dump())

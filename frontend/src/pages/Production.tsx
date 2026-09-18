@@ -2,12 +2,14 @@ import { useCallback, useEffect, useState } from 'react'
 import { useApi } from '../hooks/useApi'
 import { api } from '../lib/api'
 import { useI18n } from '../contexts/I18nContext'
+import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
-import { Badge, Button, Card, EmptyState, Input, Select, Spinner } from '../components/ui'
+import { Badge, Button, Card, DemoReadOnlyNotice, EmptyState, Input, Select, Spinner } from '../components/ui'
 import type { Crop, Farm, Production } from '../types'
 
 export default function Production() {
   const { t } = useI18n()
+  const { isReadOnly } = useAuth()
   const { push } = useToast()
   const { data: farms } = useApi<Farm[]>('/farms')
   const [crops, setCrops] = useState<Crop[]>([])
@@ -53,6 +55,8 @@ export default function Production() {
     <div className="space-y-4">
       <h1 className="text-2xl font-extrabold text-green-900">{t('nav.production')}</h1>
 
+      {isReadOnly && <DemoReadOnlyNotice />}
+
       <Card>
         <div className="grid gap-2 sm:grid-cols-3">
           <Select label={t('nav.crops')} value={cropId} onChange={(e) => setCropId(e.target.value)}>
@@ -66,7 +70,7 @@ export default function Production() {
                  onChange={(e) => setForm({ ...form, actual_yield_quintal: e.target.value })} />
         </div>
         <div className="mt-2 flex justify-end">
-          <Button onClick={save} disabled={busy || !cropId}>{t('prod.record')}</Button>
+          <Button onClick={save} disabled={busy || isReadOnly || !cropId}>{t('prod.record')}</Button>
         </div>
       </Card>
 

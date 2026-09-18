@@ -2,8 +2,8 @@
 
 The numbers are engineered so the README's 60-second judge walkthrough
 reconciles exactly:
-- 14 expenses totaling ₹80,000 (after the walkthrough's ₹2,500 fertilizer
-  add: 15 expenses, ₹82,500 total, ₹5,500 average — as documented);
+- 14 expenses totaling ₹80,000, frozen at that value because the demo account
+  is read-only (a visitor explores, they don't mutate);
 - cotton produced 22 q against a 24 q expectation (exactly −8.3% variance);
 - net profit ₹85,400 at login on ₹165,400 net revenue;
 - wheat has an unsold balance (pending sale) and soybean is the active crop
@@ -16,32 +16,111 @@ from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.core.security import hash_password
-from app.models.models import (Crop, Expense, Farm, Notification, Production,
-                               Sale, User)
+from app.models.models import (AIConversation, Crop, Expense, Farm,
+                               Notification, Production, Sale, User)
 
 log = logging.getLogger(__name__)
 settings = get_settings()
 
 DEMO_MOBILE = "9999999999"
 DEMO_PASSWORD = "demo1234"
+DEMO_NAME = "Demo Farmer"
+
+
+def _seeding_enabled() -> bool:
+    return settings.SEED_DEMO_DATA.lower() in ("1", "true", "yes")
 
 
 def seed_demo_data(db: Session) -> None:
-    if settings.SEED_DEMO_DATA.lower() not in ("1", "true", "yes"):
+    """Create the demo farm once; a no-op if it already exists."""
+    if not _seeding_enabled():
         return
     if db.query(User).filter(User.mobile == DEMO_MOBILE).first():
         return  # already seeded
+    _build_demo_farm(db, _get_or_create_demo_user(db))
 
-    farmer = User(
-        name="Demo Farmer",
-        mobile=DEMO_MOBILE,
-        password_hash=hash_password(DEMO_PASSWORD),
-        language="en",
-        is_demo=True,
-    )
-    db.add(farmer)
-    db.flush()
 
+def reseed_demo_data(db: Session) -> dict:
+    """Rebuild the demo farm in place, on the same account row.
+
+    The account itself is deliberately kept: JWTs are minted against the demo
+    user's id, so deleting and recreating it would sign out any visitor who
+    happened to be mid-walkthrough. Only the farm data — plus the demo's chat
+    log and alerts — is wiped and rebuilt.
+
+    The demo account is read-only at the API level, so drift should be
+    impossible; this is the belt-and-braces pass that also covers anything a
+    future code path (or a direct DB edit) might introduce. Returns a small
+    non-secret summary for the caller's log.
+    """
+    if not _seeding_enabled():
+        return {"status": "disabled", "detail": "SEED_DEMO_DATA is off"}
+    farmer = _get_or_create_demo_user(db)
+    removed = _purge_demo_farm_data(db, farmer)
+    _restore_demo_credentials(db, farmer)
+    _build_demo_farm(db, farmer)
+    db.refresh(farmer)
+    summary = {
+        "status": "reseeded",
+        "demo_user_id": farmer.id,
+        "removed": removed,
+        "expenses": db.query(Expense).filter(Expense.user_id == farmer.id).count(),
+        "crops": (db.query(Crop).join(Farm, Crop.farm_id == Farm.id)
+                  .filter(Farm.owner_id == farmer.id).count()),
+    }
+    log.info("Demo farm re-seeded: %s", summary)
+    return summary
+
+
+def _get_or_create_demo_user(db: Session) -> User:
+    farmer = db.query(User).filter(User.mobile == DEMO_MOBILE).first()
+    if farmer is None:
+        farmer = User(name=DEMO_NAME, mobile=DEMO_MOBILE,
+                      password_hash=hash_password(DEMO_PASSWORD),
+                      language="en", is_demo=True)
+        db.add(farmer)
+        db.flush()
+    return farmer
+
+
+def _restore_demo_credentials(db: Session, farmer: User) -> None:
+    """Put the canonical demo credentials back, in case they were edited."""
+    farmer.name = DEMO_NAME
+    farmer.is_demo = True
+    farmer.password_hash = hash_password(DEMO_PASSWORD)
+    db.commit()
+
+
+def _purge_demo_farm_data(db: Session, farmer: User) -> dict:
+    """Delete everything the demo account owns, except the account itself."""
+    farm_ids = [row[0] for row in db.query(Farm.id).filter(Farm.owner_id == farmer.id)]
+    crop_ids = ([row[0] for row in db.query(Crop.id).filter(Crop.farm_id.in_(farm_ids))]
+                if farm_ids else [])
+    counts = {
+        "farms": len(farm_ids),
+        "crops": len(crop_ids),
+        "expenses": db.query(Expense).filter(Expense.user_id == farmer.id).count(),
+        "sales": db.query(Sale).filter(Sale.user_id == farmer.id).count(),
+        "production": (db.query(Production).filter(Production.crop_id.in_(crop_ids)).count()
+                       if crop_ids else 0),
+    }
+
+    # Children first — expenses/sales reference crops, crops reference farms.
+    if crop_ids:
+        db.query(Production).filter(Production.crop_id.in_(crop_ids)).delete(synchronize_session=False)
+    db.query(Expense).filter(Expense.user_id == farmer.id).delete(synchronize_session=False)
+    db.query(Sale).filter(Sale.user_id == farmer.id).delete(synchronize_session=False)
+    if crop_ids:
+        db.query(Crop).filter(Crop.id.in_(crop_ids)).delete(synchronize_session=False)
+    db.query(Farm).filter(Farm.owner_id == farmer.id).delete(synchronize_session=False)
+    db.query(Notification).filter(Notification.user_id == farmer.id).delete(synchronize_session=False)
+    db.query(AIConversation).filter(AIConversation.user_id == farmer.id).delete(synchronize_session=False)
+    db.commit()
+    return counts
+
+
+def _build_demo_farm(db: Session, farmer: User) -> None:
+    """Write the pristine demo farm for an existing demo account, then commit."""
     farm = Farm(
         owner_id=farmer.id, name="Akola Main Farm", area_acres=10.0,
         latitude=20.7002, longitude=77.0082, village="Akola",
@@ -114,9 +193,11 @@ def seed_demo_data(db: Session) -> None:
     # ---- Notifications ----
     db.add(Notification(
         user_id=farmer.id, kind="system",
-        title="Welcome to KisanProfit",
-        body=("This is the demo farm. Explore the dashboard, add an expense, "
-              "try the profit simulator, and ask Kisan AI about your data."),
+        title="Welcome to KisanProfit (demo, read-only)",
+        body=("This is a shared demo farm, so it is read-only and always looks "
+              "exactly as documented. Explore the dashboard, run the profit "
+              "simulator, and ask Kisan AI about the data — then create your own "
+              "free account to add expenses, try voice entry and scan receipts."),
     ))
     db.add(Notification(
         user_id=farmer.id, kind="high_expense",
@@ -130,7 +211,7 @@ def seed_demo_data(db: Session) -> None:
     ))
 
     db.commit()
-    log.info("Demo farmer seeded (mobile %s)", DEMO_MOBILE)
+    log.info("Demo farm seeded (mobile %s)", DEMO_MOBILE)
 
 
 def seed_at_startup() -> None:

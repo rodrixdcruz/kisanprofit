@@ -2,13 +2,15 @@ import { useState } from 'react'
 import { useApi } from '../hooks/useApi'
 import { api } from '../lib/api'
 import { useI18n } from '../contexts/I18nContext'
+import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
-import { Button, Card, EmptyState, ErrorState, Input, Modal, Spinner } from '../components/ui'
+import { Button, Card, DemoReadOnlyNotice, EmptyState, ErrorState, Input, Modal, Spinner } from '../components/ui'
 import MapPicker from '../components/MapPicker'
 import type { Farm } from '../types'
 
 export default function Farms() {
   const { t } = useI18n()
+  const { isReadOnly } = useAuth()
   const { data, loading, error, refresh } = useApi<Farm[]>('/farms')
   const { push } = useToast()
   const [editing, setEditing] = useState<Farm | null>(null)
@@ -16,11 +18,13 @@ export default function Farms() {
   const [form, setForm] = useState({ name: '', area_acres: '1', village: '', latitude: '', longitude: '' })
 
   const openNew = () => {
+    if (isReadOnly) return
     setEditing(null)
     setForm({ name: '', area_acres: '1', village: '', latitude: '', longitude: '' })
     setOpen(true)
   }
   const openEdit = (f: Farm) => {
+    if (isReadOnly) return
     setEditing(f)
     setForm({
       name: f.name, area_acres: String(f.area_acres), village: f.village ?? '',
@@ -61,8 +65,10 @@ export default function Farms() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-extrabold text-green-900">{t('nav.farms')}</h1>
-        <Button onClick={openNew}>＋ {t('farms.add')}</Button>
+        <Button onClick={openNew} disabled={isReadOnly}>＋ {t('farms.add')}</Button>
       </div>
+
+      {isReadOnly && <DemoReadOnlyNotice />}
 
       {(data ?? []).length === 0 ? <EmptyState icon="🏞️" message={t('common.empty')} /> : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -75,8 +81,8 @@ export default function Farms() {
               <p className="mt-1 text-sm text-gray-600">{f.area_acres} {t('farms.area')}</p>
               {f.village && <p className="text-sm text-gray-500">📍 {f.village}</p>}
               <div className="mt-3 flex gap-2">
-                <Button variant="ghost" onClick={() => openEdit(f)}>{t('common.edit')}</Button>
-                <Button variant="danger" onClick={() => remove(f.id)}>{t('common.delete')}</Button>
+                <Button variant="ghost" onClick={() => openEdit(f)} disabled={isReadOnly}>{t('common.edit')}</Button>
+                <Button variant="danger" onClick={() => remove(f.id)} disabled={isReadOnly}>{t('common.delete')}</Button>
               </div>
             </Card>
           ))}

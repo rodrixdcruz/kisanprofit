@@ -52,6 +52,8 @@ const en: Dict = {
   'err.required': 'Please fill all required fields.',
   'common.save': 'Save', 'common.cancel': 'Cancel', 'common.delete': 'Delete',
   'common.edit': 'Edit', 'common.loading': 'Loading…', 'common.empty': 'Nothing here yet',
+  'demo.badge': 'Demo · read-only',
+  'demo.readonly': 'The shared demo farm is read-only so it stays exactly as documented — explore every screen, but adding or editing data is disabled. Create your own free account to record real data.',
   'common.download': 'Download',
 }
 
@@ -105,6 +107,8 @@ const hi: Dict = {
   'err.required': 'कृपया सभी आवश्यक जानकारी भरें।',
   'common.save': 'सहेजें', 'common.cancel': 'रद्द करें', 'common.delete': 'हटाएँ',
   'common.edit': 'बदलें', 'common.loading': 'लोड हो रहा है…', 'common.empty': 'अभी कुछ नहीं',
+  'demo.badge': 'डेमो · केवल पढ़ने योग्य',
+  'demo.readonly': 'साझा डेमो फ़ार्म केवल पढ़ने के लिए है ताकि वह दस्तावेज़ों जैसा ही रहे — हर स्क्रीन देखें, पर डेटा जोड़ना या बदलना बंद है। असली डेटा दर्ज करने के लिए अपना मुफ़्त खाता बनाएँ।',
   'common.download': 'डाउनलोड',
 }
 
@@ -158,6 +162,8 @@ const mr: Dict = {
   'err.required': 'कृपया सर्व आवश्यक माहिती भरा.',
   'common.save': 'जतन करा', 'common.cancel': 'रद्द करा', 'common.delete': 'डिलीट',
   'common.edit': 'बदल', 'common.loading': 'लोड होत आहे…', 'common.empty': 'अजून काही नाही',
+  'demo.badge': 'डेमो · फक्त वाचन',
+  'demo.readonly': 'सामायिक डेमो शेत फक्त वाचनासाठी आहे, म्हणून ते दस्तऐवजांप्रमाणेच राहते — प्रत्येक स्क्रीन पाहा, पण डेटा जोडणे किंवा बदलणे बंद आहे. खरा डेटा नोंदवण्यासाठी तुमचे मोफत खाते तयार करा.',
   'common.download': 'डाउनलोड',
 }
 
