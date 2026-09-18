@@ -4,17 +4,19 @@
 
 **Know Your Cost. Track Your Crop. Grow Your Profit.**
 
-[![tests](https://img.shields.io/badge/tests-53%20passing-brightgreen)](#quick-start) [![i18n](https://img.shields.io/badge/i18n-EN%20%2F%20%E0%A4%B9%E0%A4%BF%E0%A4%A8%E0%A5%8D%E0%A4%A6%E0%A5%80%20%2F%20%E0%A4%AE%E0%A4%B0%E0%A4%BE%E0%A4%A0%E0%A5%80-blue)](#-features) [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](backend/) [![React 18](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white)](frontend/) [![FastAPI](https://img.shields.io/badge/FastAPI-0.110%2B-009688?logo=fastapi&logoColor=white)](backend/) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![tests](https://img.shields.io/badge/tests-53%20passing-brightgreen)](#quick-start) [![live](https://img.shields.io/badge/%E2%96%B6_live_demo-kisanprofit--web.onrender.com-2ea44f)](https://kisanprofit-web.onrender.com) [![i18n](https://img.shields.io/badge/i18n-EN%20%2F%20%E0%A4%B9%E0%A4%BF%E0%A4%A8%E0%A5%8D%E0%A4%A6%E0%A5%80%20%2F%20%E0%A4%AE%E0%A4%B0%E0%A4%BE%E0%A4%A0%E0%A5%80-blue)](#-features) [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](backend/) [![React 18](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white)](frontend/) [![FastAPI](https://img.shields.io/badge/FastAPI-0.110%2B-009688?logo=fastapi&logoColor=white)](backend/) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 </div>
 
 KisanProfit is a production-quality, hackathon-ready web platform that helps farmers track farm expenses, record harvest and sales, and see their **real profit per crop** — with AI insights, a profit simulator, weather advisories, market reference prices, PDF/CSV reports, and full **English / हिन्दी / मराठी** support.
 
+**▶ Try it live: [kisanprofit-web.onrender.com](https://kisanprofit-web.onrender.com)** — demo login: mobile `9999999999`, password `demo1234` (pre-seeded demo farm). Free-tier hosting: the first request after ~15 min idle takes ~30–50 s to wake.
+
 Built for farmers, not bankers: big readable numbers, large touch targets, 10-second expense entry (with **voice input**), bottom-sheet forms on mobile, and honest empty/error/loading states.
 
 ---
 
-> ⚠️ **Repository status** — KisanProfit is now a **complete, working application**: FastAPI + SQLAlchemy backend (53 passing tests), React 18 + TypeScript + Tailwind v4 frontend, Docker Compose stack with a pre-seeded demo farm. The README below is the original feature specification the implementation follows — the architecture tree and demo numbers are verified against the running app.
+> ✅ **Repository status** — KisanProfit is a **complete, working, deployed application**: FastAPI + SQLAlchemy backend (53 passing tests), React 18 + TypeScript + Tailwind v4 frontend, live on Render (frontend static site + FastAPI service) with a managed Postgres. Locally, the same stack runs via Docker Compose with a pre-seeded demo farm. The README below is the original feature specification the implementation follows — the architecture tree and demo numbers are verified against the running app.
 
 ---
 
