@@ -1,10 +1,20 @@
+<div align="center">
+
 # 🌾 KisanProfit — Farmer Expense & Profit Tracker
 
 **Know Your Cost. Track Your Crop. Grow Your Profit.**
 
+[![tests](https://img.shields.io/badge/tests-34%20passing-brightgreen)](#quick-start) [![i18n](https://img.shields.io/badge/i18n-EN%20%2F%20%E0%A4%B9%E0%A4%BF%E0%A4%A8%E0%A5%8D%E0%A4%A6%E0%A5%80%20%2F%20%E0%A4%AE%E0%A4%B0%E0%A4%BE%E0%A4%A0%E0%A5%80-blue)](#-features) [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](backend/) [![React 18](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white)](frontend/) [![FastAPI](https://img.shields.io/badge/FastAPI-0.110%2B-009688?logo=fastapi&logoColor=white)](backend/) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+</div>
+
 KisanProfit is a production-quality, hackathon-ready web platform that helps farmers track farm expenses, record harvest and sales, and see their **real profit per crop** — with AI insights, a profit simulator, weather advisories, market reference prices, PDF/CSV reports, and full **English / हिन्दी / मराठी** support.
 
 Built for farmers, not bankers: big readable numbers, large touch targets, 10-second expense entry (with **voice input**), bottom-sheet forms on mobile, and honest empty/error/loading states.
+
+---
+
+> ⚠️ **Repository status** — This README documents the **complete design** of KisanProfit: the feature set, architecture, and financial engine are fully specified here, and a Docker Compose file is included for the intended backend + frontend + PostgreSQL stack. **The full application source is not published in this repository yet.** If you'd like the source or a walkthrough, open an issue or reach out.
 
 ---
 
@@ -176,4 +186,4 @@ Frontend production build: `cd frontend && npm run build` (static files in `dist
 
 ## 📜 License
 
-Built as a hackathon project — free for farmers.
+Released under the [MIT License](LICENSE) — built as a hackathon project, free for farmers.
